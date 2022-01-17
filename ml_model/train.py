@@ -17,6 +17,10 @@ from tqdm import tqdm
 from PIL import Image,ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+# Import dependencies for Debugging and Profiling
+import smdebug.pytorch as smd
+from smdebug import modes
+from smdebug.pytorch import get_hook
 
 logger=logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -71,59 +75,16 @@ class AmazonBinImageDataset(Dataset):
         
         return(image,img_label)
 
-
-def test(
-    model,
-    test_loader,
-    criterion,
-    device
-):
-    '''
-    Evaluate model on the test set
-    
-    Input : 
-    
-        model : Module, pytorch model
-        
-        test_loader : DataLoader, data loader
-        
-        criterion : _Loss, loss function
-        
-        device : device to use for computation
-    '''
-    
-    model.eval()
-    running_loss=0.0
-    running_rmse=0.0
-    running_corrects=0
-    
-    for inputs, labels in test_loader:
-        inputs=inputs.to(device)
-        labels=labels.to(device)
-        outputs=model(inputs)
-        loss=criterion(outputs, labels)
-        _, preds = torch.max(outputs, 1)
-        running_loss += loss.item() * inputs.size(0)
-        running_rmse += torch.sum(torch.pow((preds-labels),2))
-        running_corrects += torch.sum(preds == labels)
-
-    total_loss = running_loss // len(test_loader)
-    total_acc = running_corrects.double() // len(test_loader)
-    total_rmse = (running_rmse // len(test_loader))**0.5
-    
-    logger.info(f"Testing Loss: {total_loss}")
-    logger.info(f"Testing Accuracy: {total_acc}")
-    logger.info(f"Testing RMSE: {total_rmse}")
-
     
 def train(
     model,
     train_loader,
-    validation_loader,
+    test_loader,
     criterion,
     optimizer,
     epochs,
-    device
+    device,
+    hook
 ):
     '''
     Evaluate model on the test set
@@ -134,7 +95,7 @@ def train(
         
         train_loader : DataLoader, data loader
         
-        validation_loader : DataLoader, data loader
+        test_loader : DataLoader, data loader
         
         criterion : _Loss, loss function
         
@@ -143,6 +104,8 @@ def train(
         epochs : int, number of epochs
         
         device : device to use for computation
+        
+        hook : hook for the debugger
     
     Output : 
     
@@ -151,16 +114,18 @@ def train(
     '''
     
     best_loss=1e6
-    image_dataset={'Train':train_loader, 'Validation':validation_loader}
+    image_dataset={'Train':train_loader, 'Test':test_loader}
     loss_counter=0
     
     for epoch in range(epochs):
         logger.info(f"Epoch: {epoch}")
-        for phase in ['Train', 'Validation']:
+        for phase in ['Train', 'Test']:
             if phase=='Train':
                 model.train()
+                hook.set_mode(modes.TRAIN)
             else:
                 model.eval()
+                hook.set_mode(modes.EVAL)
             running_loss = 0.0
             running_rmse = 0.0
             running_corrects = 0
@@ -185,7 +150,7 @@ def train(
             epoch_acc = running_corrects // len(image_dataset[phase])
             epoch_rmse = (running_rmse // len(image_dataset[phase]))**0.5
             
-            if phase=='Validation':
+            if phase=='Test':
                 if epoch_loss<best_loss:
                     best_loss=epoch_loss
                 else:
@@ -301,31 +266,30 @@ def main(args):
     model=net()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logger.info(f"Running on Device {device}")
-    model=model.to(device)    
+    model=model.to(device)
+    
+    # Hook for debugger
+    hook = smd.Hook.create_from_json_file()
+    hook.register_hook(model)
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss(ignore_index=133)
     optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate)
+    
+    #Register loss for debugging
+    hook.register_loss(criterion)
     
     # Train
     logger.info("Starting Model Training")
     model=train(
         model, 
         train_loader, 
-        validation_loader, 
+        test_loader, 
         criterion, 
         optimizer, 
         args.epochs,
-        device
-    )
-    
-    # Test
-    logger.info("Testing Model")
-    test(
-        model, 
-        test_loader, 
-        criterion, 
-        device
+        device,
+        hook
     )
     
     # Save 
