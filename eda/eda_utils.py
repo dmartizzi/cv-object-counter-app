@@ -158,7 +158,7 @@ def train_val_test_split(image_ids_sel,\
     '''
     
     full_df = image_ids_sel.copy()\
-                           .sample(frac=1.0)\
+                           .sample(frac=1.0,random_state=1294)\
                            .reset_index(drop=True)
     
     n_full = full_df.shape[0]
@@ -191,3 +191,28 @@ def train_val_test_split(image_ids_sel,\
                                           ignore_index=True)
             
     return(train_df,val_df,test_df)
+
+
+def transfer_images(idd,s3source,s3dest):
+    '''
+    Move image idd.jpg from source 
+    to destination
+    
+    Input :
+    
+        idd : int, id of the image
+        
+        s3source : str, URI of source 
+        
+        s3dest : str, URI of destination
+    '''
+    
+    client = boto3.resource('s3')
+    key = '%05d.jpg'%idd
+    copy_source = {
+      'Bucket': s3source,
+      'Key': key
+    }
+    bucket = client.Bucket(s3dest)
+    bucket.copy(copy_source, key)
+    
