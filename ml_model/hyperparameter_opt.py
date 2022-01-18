@@ -104,12 +104,12 @@ def test(
         loss=criterion(outputs, labels)
         _, preds = torch.max(outputs, 1)
         running_loss += loss.item() * inputs.size(0)
-        running_rmse += torch.sum(torch.pow((preds-labels),2))
-        running_corrects += torch.sum(preds == labels)
+        running_rmse += torch.sum(torch.pow((preds-labels),2)).item()
+        running_corrects += torch.sum(preds == labels).item()
 
-    total_loss = running_loss // len(test_loader)
-    total_acc = running_corrects.double() // len(test_loader)
-    total_rmse = (running_rmse // len(test_loader))**0.5
+    total_loss = running_loss / len(test_loader.dataset)
+    total_acc = float(running_corrects) / len(test_loader.dataset)
+    total_rmse = (running_rmse / len(test_loader.dataset))**0.5
     
     logger.info(f"Testing Loss: {total_loss}")
     logger.info(f"Testing Accuracy: {total_acc}")
@@ -178,12 +178,12 @@ def train(
 
                 _, preds = torch.max(outputs, 1)
                 running_loss += loss.item() * inputs.size(0)
-                running_rmse += torch.sum(torch.pow((preds-labels),2))
-                running_corrects += torch.sum(preds == labels)
+                running_rmse += torch.sum(torch.pow((preds-labels),2)).item()
+                running_corrects += torch.sum(preds == labels).item()
 
-            epoch_loss = running_loss // len(image_dataset[phase])
-            epoch_acc = running_corrects // len(image_dataset[phase])
-            epoch_rmse = (running_rmse // len(image_dataset[phase]))**0.5
+            epoch_loss = running_loss / len(image_dataset[phase].dataset)
+            epoch_acc = float(running_corrects) / len(image_dataset[phase].dataset)
+            epoch_rmse = (running_rmse / len(image_dataset[phase].dataset))**0.5
             
             if phase=='Validation':
                 if epoch_loss<best_loss:
@@ -196,10 +196,10 @@ def train(
             logger.info(f'Epoch {epoch} {phase} RMSE: {epoch_rmse}')
             logger.info(f'Epoch {epoch} Best Loss: {best_loss}')
             
-        if loss_counter==1:
-            break
-        if epoch==0:
-            break
+        #if loss_counter==1:
+        #    break
+        #if epoch==0:
+        #    break
             
     return(model)
     
@@ -304,7 +304,7 @@ def main(args):
     model=model.to(device)    
     
     # Loss function and optimizer
-    criterion = nn.CrossEntropyLoss(ignore_index=133)
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate)
     
     # Train
