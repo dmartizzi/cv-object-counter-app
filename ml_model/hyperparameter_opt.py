@@ -63,7 +63,7 @@ class AmazonBinImageDataset(Dataset):
         img_id = self.metadata.iloc[idx,0]
         img_label = self.metadata.iloc[idx,2]
         img_name = os.path.join(self.root_dir,
-                                '%05d.jpeg'%img_id)
+                                '%05d.jpg'%img_id)
         image = Image.open(img_name)
             
         if self.transform:
@@ -151,13 +151,13 @@ def train(
     '''
     
     best_loss=1e6
-    image_dataset={'Train':train_loader, 'Validation':validation_loader}
+    image_dataset={'Training':train_loader, 'Validation':validation_loader}
     loss_counter=0
     
     for epoch in range(epochs):
         logger.info(f"Epoch: {epoch}")
-        for phase in ['Train', 'Validation']:
-            if phase=='Train':
+        for phase in ['Training', 'Validation']:
+            if phase=='Training':
                 model.train()
             else:
                 model.eval()
@@ -171,7 +171,7 @@ def train(
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
 
-                if phase=='Train':
+                if phase=='Training':
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
@@ -191,10 +191,10 @@ def train(
                 else:
                     loss_counter+=1
 
-            logger.info('{} Loss: {:.4f}'.format(phase,epoch_loss))
-            logger.info('{} Accuracy: {:.4f}'.format(phase,epoch_acc))
-            logger.info('{} RMSE: {:.4f}'.format(phase,epoch_rmse))
-            logger.info('Best Loss: {:.4f}'.format(best_loss))
+            logger.info(f'Epoch {epoch} {phase} Loss: {epoch_loss}')
+            logger.info(f'Epoch {epoch} {phase} Accuracy: {epoch_acc}')
+            logger.info(f'Epoch {epoch} {phase} RMSE: {epoch_rmse}')
+            logger.info(f'Epoch {epoch} Best Loss: {best_loss}')
             
         if loss_counter==1:
             break

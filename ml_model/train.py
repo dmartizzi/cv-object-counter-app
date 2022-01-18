@@ -67,7 +67,7 @@ class AmazonBinImageDataset(Dataset):
         img_id = self.metadata.iloc[idx,0]
         img_label = self.metadata.iloc[idx,2]
         img_name = os.path.join(self.root_dir,
-                                '%05d.jpeg'%img_id)
+                                '%05d.jpg'%img_id)
         image = Image.open(img_name)
             
         if self.transform:
@@ -114,13 +114,13 @@ def train(
     '''
     
     best_loss=1e6
-    image_dataset={'Train':train_loader, 'Test':test_loader}
+    image_dataset={'Training':train_loader, 'Testing':test_loader}
     loss_counter=0
     
     for epoch in range(epochs):
         logger.info(f"Epoch: {epoch}")
-        for phase in ['Train', 'Test']:
-            if phase=='Train':
+        for phase in ['Training', 'Testing']:
+            if phase=='Training':
                 model.train()
                 hook.set_mode(modes.TRAIN)
             else:
@@ -136,7 +136,7 @@ def train(
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
 
-                if phase=='Train':
+                if phase=='Training':
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
@@ -150,16 +150,16 @@ def train(
             epoch_acc = running_corrects // len(image_dataset[phase])
             epoch_rmse = (running_rmse // len(image_dataset[phase]))**0.5
             
-            if phase=='Test':
+            if phase=='Testing':
                 if epoch_loss<best_loss:
                     best_loss=epoch_loss
                 else:
                     loss_counter+=1
 
-            logger.info('{} Loss: {:.4f}'.format(phase,epoch_loss))
-            logger.info('{} Accuracy: {:.4f}'.format(phase,epoch_acc))
-            logger.info('{} RMSE: {:.4f}'.format(phase,epoch_rmse))
-            logger.info('Best Loss: {:.4f}'.format(best_loss))
+            logger.info(f'Epoch {epoch} {phase} Loss: {epoch_loss}')
+            logger.info(f'Epoch {epoch} {phase} Accuracy: {epoch_acc}')
+            logger.info(f'Epoch {epoch} {phase} RMSE: {epoch_rmse}')
+            logger.info(f'Epoch {epoch} Best Loss: {best_loss}')
             
         if loss_counter==1:
             break
