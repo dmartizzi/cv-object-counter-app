@@ -171,14 +171,19 @@ def train(
     
 def net():
     model = models.resnet50(pretrained=True)
-
-    for param in model.parameters():
-        param.requires_grad = False   
-
+ 
+    ct = 0
+    for child in model.children():
+        ct += 1
+        if ct < 7:
+            for param in child.parameters():
+                param.requires_grad = False
+    
     model.fc = nn.Sequential(
-                   nn.Linear(2048, 128),
-                   nn.ReLU(inplace=True),
-                   nn.Linear(128, 10))
+        nn.Linear(2048, 128),
+        nn.ReLU(inplace=True),
+        nn.Linear(128, 10)
+    )
     return(model)
 
 
@@ -274,7 +279,8 @@ def main(args):
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate)
+    #optimizer = optim.Adam(model.fc.parameters(), lr=args.learning_rate)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
     
     #Register loss for debugging
     hook.register_loss(criterion)

@@ -22,14 +22,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def net():
     model = models.resnet50(pretrained=True)
-
-    for param in model.parameters():
-        param.requires_grad = False   
-
+ 
+    ct = 0
+    for child in model.children():
+        ct += 1
+        if ct < 7:
+            for param in child.parameters():
+                param.requires_grad = False
+    
     model.fc = nn.Sequential(
-                   nn.Linear(2048, 128),
-                   nn.ReLU(inplace=True),
-                   nn.Linear(128, 10))
+        nn.Linear(2048, 128),
+        nn.ReLU(inplace=True),
+        nn.Linear(128, 10)
+    )
     return(model)
 
 
