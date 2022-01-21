@@ -33,7 +33,7 @@ def net():
     model.fc = nn.Sequential(
         nn.Linear(2048, 128),
         nn.ReLU(inplace=True),
-        nn.Linear(128, 10)
+        nn.Linear(128, 6)
     )
     return(model)
 

@@ -196,15 +196,21 @@ def train(
             logger.info(f'Epoch {epoch} {phase} RMSE: {epoch_rmse}')
             logger.info(f'Epoch {epoch} Best Loss: {best_loss}')
             
-        #if loss_counter==1:
-        #    break
-        #if epoch==0:
-        #    break
-            
     return(model)
     
     
 def net():
+    '''
+    PyTorch model for multiclass 
+    classification built on top of ResNet50, 
+    with custom output layers, and the 
+    first 6 layers frozen.
+    
+    Output :
+        
+        model : Module, pytorch model
+    '''
+    
     model = models.resnet50(pretrained=True)
  
     ct = 0
@@ -217,14 +223,28 @@ def net():
     model.fc = nn.Sequential(
         nn.Linear(2048, 128),
         nn.ReLU(inplace=True),
-        nn.Linear(128, 10)
+        nn.Linear(128, 6)
     )
     return(model)
 
 
 def create_data_loaders(data, batch_size):
     '''
+    Create data loaders
     
+    Input : 
+    
+        data : str, path to data 
+        
+        batch_size : int, batch size
+        
+    Output : 
+    
+        train_data_loader : DataLoader, training data loader
+        
+        test_data_loader : DataLoader, testing data loader
+        
+        validation_data_loader : DataLoader, validation data loader
     '''
     
     train_mdata_path = os.path.join(data, 'train.csv')

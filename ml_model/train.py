@@ -76,13 +76,68 @@ class AmazonBinImageDataset(Dataset):
         return(image,img_label)
 
     
-def train(
+def test(
     model,
-    train_loader,
     test_loader,
     criterion,
     optimizer,
-    epochs,
+    epoch,
+    device,
+    hook
+):
+    '''
+    Evaluate model on the test set
+    
+    Input : 
+    
+        model : Module, pytorch model to be trained
+        
+        test_loader : DataLoader, data loader
+                
+        criterion : _Loss, loss function
+        
+        optimizer : Optimizer, optimizer 
+        
+        epoch : int, index of this epoch
+
+        device : device to use for computation
+                
+        hook : hook for the debugger
+    '''
+    
+    model.eval()
+    hook.set_mode(modes.EVAL)
+    
+    loss_counter=0
+    running_loss = 0.0
+    running_rmse = 0.0
+    running_corrects = 0
+    for inputs, labels in test_loader:
+        inputs=inputs.to(device)
+        labels=labels.to(device)
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        
+        _, preds = torch.max(outputs, 1)
+        running_loss += loss.item() * inputs.size(0)
+        running_rmse += torch.sum(torch.pow((preds-labels),2)).item()
+        running_corrects += torch.sum(preds == labels).item()
+    
+    epoch_loss = running_loss / len(test_loader.dataset)
+    epoch_acc = float(running_corrects) / len(test_loader.dataset)
+    epoch_rmse = (running_rmse / len(test_loader.dataset))**0.5
+    
+    logger.info(f'Epoch {epoch} Testing Loss: {epoch_loss}')
+    logger.info(f'Epoch {epoch} Testing Accuracy: {epoch_acc}')
+    logger.info(f'Epoch {epoch} Testing RMSE: {epoch_rmse}')
+            
+    
+def train(
+    model,
+    train_loader,
+    criterion,
+    optimizer,
+    epoch,
     device,
     hook
 ):
@@ -94,82 +149,67 @@ def train(
         model : Module, pytorch model to be trained
         
         train_loader : DataLoader, data loader
-        
-        test_loader : DataLoader, data loader
-        
+                
         criterion : _Loss, loss function
         
         optimizer : Optimizer, optimizer 
         
-        epochs : int, number of epochs
-        
+        epoch : int, index of this epoch
+
         device : device to use for computation
-        
+                
         hook : hook for the debugger
     
     Output : 
     
         model : Module, trained pytorch model
-        
     '''
+
+    model.train()
+    hook.set_mode(modes.TRAIN)
     
-    best_loss=1e6
-    image_dataset={'Training':train_loader, 'Testing':test_loader}
     loss_counter=0
+    running_loss = 0.0
+    running_rmse = 0.0
+    running_corrects = 0
+    for inputs, labels in train_loader:
+        inputs=inputs.to(device)
+        labels=labels.to(device)
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        _, preds = torch.max(outputs, 1)
+        running_loss += loss.item() * inputs.size(0)
+        running_rmse += torch.sum(torch.pow((preds-labels),2)).item()
+        running_corrects += torch.sum(preds == labels).item()
+        
+    epoch_loss = running_loss / len(train_loader.dataset)
+    epoch_acc = float(running_corrects) / len(train_loader.dataset)
+    epoch_rmse = (running_rmse / len(train_loader.dataset))**0.5
     
-    for epoch in range(epochs):
-        logger.info(f"Epoch: {epoch}")
-        for phase in ['Training', 'Testing']:
-            if phase=='Training':
-                model.train()
-                hook.set_mode(modes.TRAIN)
-            else:
-                model.eval()
-                hook.set_mode(modes.EVAL)
-            running_loss = 0.0
-            running_rmse = 0.0
-            running_corrects = 0
-
-            for inputs, labels in image_dataset[phase]:
-                inputs=inputs.to(device)
-                labels=labels.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-
-                if phase=='Training':
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-
-                _, preds = torch.max(outputs, 1)
-                running_loss += loss.item() * inputs.size(0)
-                running_rmse += torch.sum(torch.pow((preds-labels),2)).item()
-                running_corrects += torch.sum(preds == labels).item()
-
-            epoch_loss = running_loss / len(image_dataset[phase].dataset)
-            epoch_acc = float(running_corrects) / len(image_dataset[phase].dataset)
-            epoch_rmse = (running_rmse / len(image_dataset[phase].dataset))**0.5
-            
-            if phase=='Testing':
-                if epoch_loss<best_loss:
-                    best_loss=epoch_loss
-                else:
-                    loss_counter+=1
-
-            logger.info(f'Epoch {epoch} {phase} Loss: {epoch_loss}')
-            logger.info(f'Epoch {epoch} {phase} Accuracy: {epoch_acc}')
-            logger.info(f'Epoch {epoch} {phase} RMSE: {epoch_rmse}')
-            logger.info(f'Epoch {epoch} Best Loss: {best_loss}')
-            
-        #if loss_counter==1:
-        #    break
-        #if epoch==0:
-        #    break
+    logger.info(f'Epoch {epoch} Training Loss: {epoch_loss}')
+    logger.info(f'Epoch {epoch} Training Accuracy: {epoch_acc}')
+    logger.info(f'Epoch {epoch} Training RMSE: {epoch_rmse}')
             
     return(model)
     
     
 def net():
+    '''
+    PyTorch model for multiclass 
+    classification built on top of ResNet50, 
+    with custom output layers, and the 
+    first 6 layers frozen.
+    
+    Output :
+        
+        model : Module, pytorch model
+    '''
+    
     model = models.resnet50(pretrained=True)
  
     ct = 0
@@ -182,14 +222,28 @@ def net():
     model.fc = nn.Sequential(
         nn.Linear(2048, 128),
         nn.ReLU(inplace=True),
-        nn.Linear(128, 10)
+        nn.Linear(128, 6)
     )
     return(model)
 
 
 def create_data_loaders(data, batch_size):
     '''
+    Create data loaders
     
+    Input : 
+    
+        data : str, path to data 
+        
+        batch_size : int, batch size
+        
+    Output : 
+    
+        train_data_loader : DataLoader, training data loader
+        
+        test_data_loader : DataLoader, testing data loader
+        
+        validation_data_loader : DataLoader, validation data loader
     '''
     
     train_mdata_path = os.path.join(data, 'train.csv')
@@ -287,16 +341,26 @@ def main(args):
     
     # Train
     logger.info("Starting Model Training")
-    model=train(
-        model, 
-        train_loader, 
-        test_loader, 
-        criterion, 
-        optimizer, 
-        args.epochs,
-        device,
-        hook
-    )
+    for epoch in range(args.epochs):
+        model=train(
+            model, 
+            train_loader, 
+            criterion, 
+            optimizer, 
+            epoch,
+            device,
+            hook
+        )
+
+        test(
+            model, 
+            test_loader, 
+            criterion, 
+            optimizer, 
+            epoch,
+            device,
+            hook
+        )
     
     # Save 
     logger.info("Saving Model")
