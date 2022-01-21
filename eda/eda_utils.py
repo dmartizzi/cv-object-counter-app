@@ -78,7 +78,7 @@ def generate_image_ids_sel(image_ids_sel_path='image_ids_sel.csv',\
         'id' : create_image_subsample(n_full,n_sel)
     })
     image_ids_sel.sort_values(by=['id'],ascending=True,\
-                              ignore_index=False,\
+                              ignore_index=True,\
                               inplace=True)
     image_ids_sel.to_csv(image_ids_sel_path,index=False)
     print(f'Generated random subsample of {n_sel} images out of {n_full}.')
@@ -86,37 +86,55 @@ def generate_image_ids_sel(image_ids_sel_path='image_ids_sel.csv',\
     return(image_ids_sel)
 
 
-def get_image_item_count(idd):
+def get_image_item_count(
+    idd,
+    s3bucket,
+    s3prefix
+):
     '''
     Retrieve item count for a given image id 
     Input :
         idd : int, id of the image
         
+        s3bucket : str, name of the bucket
+        
+        s3prefix : str, prefix
+        
     Output :
         count : int, number of items in the image
     '''
     client = boto3.client('s3')
-    response = client.get_object(Bucket='amazon-bin-images',\
-                                 Key='%05d.json'%idd)
+    key = os.path.join(s3prefix,'%05d.json'%idd)
+    response = client.get_object(Bucket=s3bucket,\
+                                 Key=key)
     body = json.loads(response['Body'].read())
-    count = body['EXPECTED_QUANTITY']
+    count = int(body['EXPECTED_QUANTITY'])
     
     return(count)
 
 
-def get_image(idd):
+def get_image(
+    idd,
+    s3bucket,
+    s3prefix
+):
     '''
     Retrieve an image for a given id
     
     Input : 
         idd : int, id of the image
         
+        s3bucket : str, name of the bucket
+        
+        s3prefix : str, prefix
+        
     Output : 
         img : ImageFile, image object
     '''
     client = boto3.client('s3')
-    response = client.get_object(Bucket='amazon-bin-images',\
-                                 Key='%05d.jpg'%idd)
+    key = os.path.join(s3prefix,'%05d.jpg'%idd)
+    response = client.get_object(Bucket=s3bucket,\
+                                 Key=key)
     img = Image.open(response['Body'])
     
     return(img)
@@ -193,7 +211,12 @@ def train_val_test_split(image_ids_sel,\
     return(train_df,val_df,test_df)
 
 
-def transfer_images(idd,s3source,s3dest):
+def transfer_images(
+    idd,
+    s3source,
+    s3source_prefix,
+    s3dest,
+    s3dest_prefix):
     '''
     Move image idd.jpg from source 
     to destination
@@ -204,15 +227,54 @@ def transfer_images(idd,s3source,s3dest):
         
         s3source : str, URI of source 
         
+        s3source_prefix : str, prefix of source
+        
         s3dest : str, URI of destination
+        
+        s3dest_prefix : str, prefix of destination
     '''
     
     client = boto3.resource('s3')
     key = '%05d.jpg'%idd
     copy_source = {
       'Bucket': s3source,
-      'Key': key
+      'Key': os.path.join(s3source_prefix,key)
     }
     bucket = client.Bucket(s3dest)
-    bucket.copy(copy_source, key)
+    bucket.copy(copy_source, os.path.join(s3dest_prefix,key))
     
+def transfer_metadata(
+    idd,
+    s3source,
+    s3source_prefix,
+    s3dest,
+    s3dest_prefix):
+    '''
+    Move metadata idd.json from source 
+    to destination
+    
+    Input :
+    
+        idd : int, id of the image
+        
+        s3source : str, URI of source 
+        
+        s3source_prefix : str, prefix of source
+        
+        s3dest : str, URI of destination
+        
+        s3dest_prefix : str, prefix of destination
+    '''
+    
+    client = boto3.resource('s3')
+    key = '%05d.json'%idd
+    copy_source = {
+      'Bucket': s3source,
+      'Key': os.path.join(s3source_prefix,key)
+    }
+    bucket = client.Bucket(s3dest)
+    bucket.copy(copy_source, os.path.join(s3dest_prefix,key))
+    
+    count = int(get_image_item_count(idd,s3dest,s3dest_prefix))
+    
+    return(count)
