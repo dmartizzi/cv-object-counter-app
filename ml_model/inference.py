@@ -24,6 +24,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def net():
+    '''
+    PyTorch model for multiclass 
+    classification built on top of ResNet50, 
+    with custom output layers, and the 
+    first 6 layers frozen.
+    
+    Output :
+        
+        model : Module, pytorch model
+    '''
+    
     model = models.resnet50(pretrained=True)
  
     ct = 0
@@ -44,6 +55,14 @@ def net():
 def model_fn(model_dir):
     '''
     Retrieve model
+    
+    Input :
+    
+        model_dir : str, location of model
+        
+    Output : 
+    
+        model : Module, PyTorch model object
     '''
     
     print("In model_fn. Model directory is -")
@@ -65,6 +84,16 @@ def model_fn(model_dir):
 def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
     '''
     Get input data
+    
+    Input : 
+        request_body : input object
+        
+        content_type : str, type of content defining which 
+                       parser should be used
+                       
+    Output : 
+    
+        img : Image, PIL format 
     '''
     
     logger.info('Deserializing the input data.')
@@ -76,17 +105,18 @@ def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
     if content_type == JPEG_CONTENT_TYPE or \
       content_type == IMAGE_CONTENT_TYPE: 
         logger.debug('Loaded JPEG content')
-        return(Image.open(io.BytesIO(request_body)))
+        img = Image.open(io.BytesIO(request_body))
+        return(img)
 
     # process a URL submitted to the endpoint    
     if content_type == JSON_CONTENT_TYPE:
-        #img_request = requests.get(url)
         logger.debug(f'Request body is: {request_body}')
         request = json.loads(request_body)
         logger.debug(f'Loaded JSON object: {request}')
         img_content = base64.b64decode(request['image'].encode('ASCII'))
-
-        return(Image.open(io.BytesIO(img_content)))
+        img = Image.open(io.BytesIO(img_content))
+        
+        return(img)
     
     raise Exception('Requested unsupported ContentType in content_type: {}'.format(content_type))
 
@@ -94,12 +124,20 @@ def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
 def predict_fn(input_object, model):
     '''
     Perform inference
+    
+    Input : 
+    
+        input_object : Image, PIL image
+        
+    Output : 
+        
+        prediction : Tensor, prediction of the model
     '''
     
     logger.info('In predict fn')
     test_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
     ])
     logger.info("transforming input")
     input_object=test_transform(input_object)
@@ -107,5 +145,6 @@ def predict_fn(input_object, model):
     with torch.no_grad():
         logger.info("Calling model")
         prediction = model(input_object.unsqueeze(0))
-    return prediction
+    
+    return(prediction)
 
