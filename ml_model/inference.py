@@ -1,3 +1,6 @@
+import io
+import base64
+import requests
 import json
 import logging
 import sys
@@ -8,12 +11,12 @@ import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
-import io
-import requests
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 JSON_CONTENT_TYPE = 'application/json'
+IMAGE_CONTENT_TYPE = 'image/*'
 JPEG_CONTENT_TYPE = 'image/jpeg'
 
 
@@ -65,22 +68,25 @@ def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
     '''
     
     logger.info('Deserializing the input data.')
-    # process an image uploaded to the endpoint
-    #if content_type == JPEG_CONTENT_TYPE: return io.BytesIO(request_body)
     logger.debug(f'Request body CONTENT-TYPE is: {content_type}')
     logger.debug(f'Request body TYPE is: {type(request_body)}')
-    if content_type == JPEG_CONTENT_TYPE: return Image.open(io.BytesIO(request_body))
-    logger.debug('SO loded JPEG content')
-    # process a URL submitted to the endpoint
     
+    # process an image uploaded to the endpoint
+    #if content_type == JPEG_CONTENT_TYPE: return io.BytesIO(request_body)
+    if content_type == JPEG_CONTENT_TYPE or \
+      content_type == IMAGE_CONTENT_TYPE: 
+        logger.debug('Loaded JPEG content')
+        return(Image.open(io.BytesIO(request_body)))
+
+    # process a URL submitted to the endpoint    
     if content_type == JSON_CONTENT_TYPE:
         #img_request = requests.get(url)
         logger.debug(f'Request body is: {request_body}')
         request = json.loads(request_body)
         logger.debug(f'Loaded JSON object: {request}')
-        url = request['url']
-        img_content = requests.get(url).content
-        return Image.open(io.BytesIO(img_content))
+        img_content = base64.b64decode(request['image'].encode('ASCII'))
+
+        return(Image.open(io.BytesIO(img_content)))
     
     raise Exception('Requested unsupported ContentType in content_type: {}'.format(content_type))
 
