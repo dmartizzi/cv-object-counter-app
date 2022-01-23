@@ -118,6 +118,7 @@ The main folders and files in this repository are:
     - `web_app.py`: main script to launch the Flask web app locally.
     - `web_app_requirements.txt`: requirements for local web app deployment.
     - `cv-object-counter-app_demo.mov`: a short video demonstrating how the app works.
+    - `proposal.pdf`: the project proposal.
     
     
 - `proof_of_deployment` folder: various snapshots taken during different stages of the workflow.
