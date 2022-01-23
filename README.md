@@ -76,7 +76,7 @@ Code related to training and deployment of the model can be found in the `ml_mod
 
 Main findings:
 - Hyperparameter optimization was used to validate the model and set hyperparameters that yield best performance in terms of minimizing the loss function computed on the validation set. Validation loss = 1.3095589876174927.
-- Training of the best model for 50 epochs takes > 6 hours. 
+- Training of the best model for 50 epochs takes > 6 hours on a GPU-accelerated `ml.g4dn.xlarge` instance. 
 - The model was tested on the test set, yielding 
     - Test Loss Function = 1.2321901550263372.
     - Test RMSE = 1.1540604249432982.
@@ -87,7 +87,7 @@ Main findings:
     - This project was performed with a tight limit on the training time and budget. 
 
 
-See `ml_model/train_and_deploy.ipynb` for more details.
+The model was deployed on a `ml.m5.large` instance as a tradeoff between price and computation time. See `ml_model/train_and_deploy.ipynb` for more details.
 
 ## Repo Catalog
 
@@ -99,7 +99,7 @@ The main folders and files in this repository are:
 
 
 - `ml_model` folder: training, validation and deployment code. Run in SageMaker Studio.
-    - `ml_model/train_and_deploy.ipynb`: main notebook to launch tuning, training and deployments. 
+    - `ml_model/train_and_deploy.ipynb`: main notebook to launch tuning, training and deployments (on `ml.m5.large` instances). 
     - `ml_model/hyperparameter_opt.py`: entrypoint for hyperparameter tuning.
     - `ml_model/train.py`: entrypoint for best model training.
     - `ml_model/inference.py`: entrypoint for model deployment to endpoint.
@@ -152,9 +152,9 @@ The following steps recommended to reproduce the results are recommended
 
 6. From SageMaker Studio, run the code in the `ml_model/train_and_deploy.ipynb` to
     - Create an S3 bucket for the model artifacts.
-    - Perform hyperparameter tuning.
-    - Train the with the best set of hyperparameters. 
-    - Deploy the best model to a SageMaker inference endpoint.
+    - Perform hyperparameter tuning on `ml.g4dn.xlarge` instances.
+    - Train the with the best set of hyperparameters on `ml.g4dn.xlarge` instances. 
+    - Deploy the best model to a SageMaker inference endpoint on `ml.m5.large` instances.
 
 
 7. Deploy a Lambda function located in `lambda_function/lambda_function.py` from the AWS Console.
