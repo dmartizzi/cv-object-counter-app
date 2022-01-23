@@ -32,7 +32,7 @@ def invoke_lambda(
     
     jpeg_serializer = sagemaker.serializers.IdentitySerializer("image/jpeg")
     json_deserializer = sagemaker.deserializers.JSONDeserializer()
-    
+        
     lambda_client = boto3.client('lambda')
     request = json.dumps({
         "s3_bucket" : s3_bucket,
@@ -44,10 +44,10 @@ def invoke_lambda(
         FunctionName=function_name,
         InvocationType = "RequestResponse",
         Payload=request
-    )
+    )    
     output = json.loads(response['Payload'].read())['body']
-    
-    img = Image.open(base64.b64decode(output['image'].encode('ASCII')))
+        
+    img = Image.open(io.BytesIO(base64.b64decode(output['image'].encode('ASCII'))))
     prediction = output['prediction']
     
     return(img,prediction)

@@ -49,7 +49,7 @@ def output():
     s3_prefix = app.config.get('s3_prefix')
     
     # invoke lambda function to get prediction
-    try :
+    if True :
         img, prediction = invoke_lambda(
             endpoint_name = endpoint_name,
             function_name = function_name,
@@ -64,11 +64,11 @@ def output():
         # predicted object count
         obj_count = np.argmax(prediction,1)[0]
 
-    except:
+    #except:
         
-        img = 1
-        save_image(img)
-        obj_count = 1
+    #    img = 1
+    #    save_image(img)
+    #    obj_count = 1
     
     return render_template(
         "output.html",
