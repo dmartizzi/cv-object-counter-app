@@ -20,7 +20,7 @@ The model taked images as an input and yield the count of objects in the image a
 
 ## Datasets and Inputs
 
-The dataset that used for this project is the Amazon Bin Image Dataset: https://github.com/awslabs/open-data-docs/tree/main/docs/aft-vbi-pds [3]. The dataset contains > 500,000 bin JPEG images and corresponding JSON metadata files describing items in the bin. Among the metadata is the count of the number of objects in each bin, which can be used to define target labels for the machine learning problem. 
+The dataset that used for this project is the Amazon Bin Image Dataset: https://github.com/awslabs/open-data-docs/tree/main/docs/aft-vbi-pds. The dataset contains > 500,000 bin JPEG images and corresponding JSON metadata files describing items in the bin. Among the metadata is the count of the number of objects in each bin, which can be used to define target labels for the machine learning problem. 
 
 Due to the large size of the dataset and to the constraints in terms of budget and time, the dataset was too big to be fully utilized. For this reason, a subsample of ~50,000 images with object counts from 0 to 5 was randomly selected from the original dataset. This random subsample was split in training, validation, and test subsets, which were stored on AWS S3. 
 
