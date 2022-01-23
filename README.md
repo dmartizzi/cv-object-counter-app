@@ -16,7 +16,7 @@ Formally, the problem falls in the realm of weakly-supervised object detection, 
 
 However, since we are only interested in the count of objects in each bin, some of the complexity of identifying the correct location and label for each object can be dropped. This should allow me to choose simpler model architectures and use weaker labels to perform the task. 
 
-The model taked images as an input and yield the count of objects in the image as an output.
+The model takes images as an input and yield the count of objects in the image as an output.
 
 ## Datasets and Inputs
 
@@ -26,7 +26,7 @@ Due to the large size of the dataset and to the constraints in terms of budget a
 
 ## Solution Statement
 
-The model used to solve this problem is a variant of the approach implemented in https://github.com/silverbottlep/abid_challenge. The idea is to reduce the object count problem to an image classification model in which the class corresponds to the count of objects in the image. In this implementation, the weights of the pre-trained ResNet50 classifier for ImageNet were loaded, and only train the deepest layers of the network plus the custom output layers, specifically the last 3 blocks of the ResNet50 architecture. With this approach, one can in principle leverage the low-level image features extracted from image classification and re-purpose the rest of the network for object identification and counting. The output layer yields a softmax distribution over the possible values of a class label corresponding to the number of objects in the image. 
+The model used to solve this problem is a variant of the approach implemented in https://github.com/silverbottlep/abid_challenge. The idea is to reduce the object count problem to an image classification model in which the class corresponds to the count of objects in the image. In this implementation, the weights of the pre-trained ResNet50 classifier for ImageNet were loaded, and only train the deepest layers of the network plus the custom output layers, specifically the last 2 blocks of the ResNet50 architecture, plus the output layers. With this approach, one can in principle leverage the low-level image features extracted from image classification and re-purpose the rest of the network for object identification and counting. The output layer yields a softmax distribution over the possible values of a class label corresponding to the number of objects in the image. 
 
 The architecture of the model is shown below. 
 
