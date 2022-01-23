@@ -119,6 +119,7 @@ The main folders and files in this repository are:
     - `web_app_requirements.txt`: requirements for local web app deployment.
     - `cv-object-counter-app_demo.mov`: a short video demonstrating how the app works.
     - `proposal.pdf`: the project proposal.
+    - `project_report.pdf`: the project report.
     
     
 - `proof_of_deployment` folder: various snapshots taken during different stages of the workflow.
